@@ -1,0 +1,19 @@
+.btn-primary{
+    @apply bg-[#B99716] text-white font-semibold rounded-full px-8 py-3 transition duration-300;
+}
+
+.btn-primary:hover{
+    @apply brightness-110;
+}
+
+.btn-outline{
+    @apply bg-white text-black border border-black font-semibold rounded-full px-8 py-3 transition duration-300;
+}
+
+.btn-outline:hover{
+    @apply bg-gray-100;
+}
+
+.card-feature{
+    @apply bg-white rounded-3xl shadow-md p-6;
+}
