@@ -83,10 +83,13 @@
 
                     <input
                         type="text"
-                        wire:model.live="description"
+                        wire:model.blur="description"
                         placeholder="Enter expense title..."
                         class="w-full rounded-2xl border border-gray-300 px-5 py-3 outline-none transition focus:border-[#F2C94C]">
 
+                        <p wire:loading wire:target="description" class="mt-2 text-sm text-[#8A6A00]">
+                            Suggesting a category...
+                        </p>
                     @error('description')
                         <p class="mt-2 text-sm text-red-500">
                             {{ $message }}
@@ -122,6 +125,13 @@
                         @endforeach
 
                     </select>
+
+                    @if($categorySource !== 'manual')
+                        <p class="mt-2 text-sm text-[#8A6A00]">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i>
+                            {{ $categorySource === 'history' ? 'From your past expenses' : 'AI suggested' }}
+                        </p>
+                    @endif
 
                     @error('category_id')
                         <p class="mt-2 text-sm text-red-500">

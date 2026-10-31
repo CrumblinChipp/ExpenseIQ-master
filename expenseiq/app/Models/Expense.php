@@ -16,6 +16,9 @@ class Expense extends Model
         'amount',
         'expense_date',
         'notes',
+        'category_source',
+        'ai_suggested_category_id',
+        'ai_confidence',
     ];
 
     protected $casts = [

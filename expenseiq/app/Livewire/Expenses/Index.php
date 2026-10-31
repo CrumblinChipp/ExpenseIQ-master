@@ -5,6 +5,7 @@ namespace App\Livewire\Expenses;
 use Livewire\Component;
 use App\Models\Expense;
 use App\Models\Category;
+use App\Services\AI\ExpenseCategorizer; // AI: was missing
 use Illuminate\Support\Facades\Auth;
 
 class Index extends Component
@@ -24,13 +25,21 @@ class Index extends Component
     public $editingExpenseId = null;
     public $deleteExpenseId = null;
 
-   
+
     // Modal States
- 
+
     public $showEditModal = false;
     public $showDeleteModal = false;
     public $showUnsavedModal = false;
     public $showEditUnsavedModal = false;
+
+
+    // AI category suggestion state
+
+    // 'manual' | 'history' | 'ai'
+    public string $categorySource = 'manual';
+    public ?int $aiSuggestedCategoryId = null;
+    public ?float $aiConfidence = null;
 
     public function mount()
     {
@@ -48,9 +57,9 @@ class Index extends Component
         ];
     }
 
-  
+
     //  CREATE
-   
+
 
     public function saveExpense()
     {
@@ -63,6 +72,11 @@ class Index extends Component
             'amount' => $this->amount,
             'expense_date' => $this->expense_date,
             'notes' => $this->notes,
+
+            // AI: how the category was chosen + what the AI suggested
+            'category_source' => $this->categorySource,
+            'ai_suggested_category_id' => $this->aiSuggestedCategoryId,
+            'ai_confidence' => $this->aiConfidence,
         ]);
 
         session()->flash('success', 'Expense added successfully.');
@@ -70,7 +84,7 @@ class Index extends Component
         $this->resetForm();
     }
 
-  
+
     //  EDIT
 
 
@@ -87,6 +101,11 @@ class Index extends Component
         $this->expense_date = $expense->expense_date;
         $this->notes = $expense->notes;
 
+        // AI: never auto-suggest while editing an existing expense
+        $this->categorySource = 'manual';
+        $this->aiSuggestedCategoryId = null;
+        $this->aiConfidence = null;
+
         $this->showEditModal = true;
     }
 
@@ -94,15 +113,24 @@ class Index extends Component
     {
         $this->validate();
 
-        Expense::where('user_id', Auth::id())
-            ->findOrFail($this->editingExpenseId)
-            ->update([
-                'category_id' => $this->category_id,
-                'description' => $this->description,
-                'amount' => $this->amount,
-                'expense_date' => $this->expense_date,
-                'notes' => $this->notes,
-            ]);
+        $expense = Expense::where('user_id', Auth::id())
+            ->findOrFail($this->editingExpenseId);
+
+        $data = [
+            'category_id' => $this->category_id,
+            'description' => $this->description,
+            'amount' => $this->amount,
+            'expense_date' => $this->expense_date,
+            'notes' => $this->notes,
+        ];
+
+        // AI: if the user changed the category, it is now a manual choice
+        // (ai_suggested_category_id is kept so accuracy can still be measured)
+        if ((int) $expense->category_id !== (int) $this->category_id) {
+            $data['category_source'] = 'manual';
+        }
+
+        $expense->update($data);
 
         session()->flash('success', 'Expense updated successfully.');
 
@@ -130,9 +158,47 @@ class Index extends Component
         $this->resetForm();
     }
 
-  
+    //  AI CATEGORY SUGGESTION
+
+    public function updatedDescription(): void
+    {
+        if ($this->showEditModal) {
+            return;
+        }
+
+        if (filled($this->category_id) && $this->categorySource === 'manual') {
+            return;
+        }
+
+        $suggestion = app(ExpenseCategorizer::class)->suggest(
+            Auth::id(),
+            $this->description,
+            $this->allCategories(),
+        );
+
+        if ($suggestion) {
+            $this->category_id           = $suggestion['category_id'];
+            $this->categorySource        = $suggestion['source'];
+            $this->aiSuggestedCategoryId = $suggestion['source'] === 'ai' ? $suggestion['category_id'] : null;
+            $this->aiConfidence          = $suggestion['source'] === 'ai' ? $suggestion['confidence'] : null;
+        } elseif ($this->categorySource !== 'manual') {
+            $this->reset('category_id', 'categorySource', 'aiSuggestedCategoryId', 'aiConfidence');
+        }
+    }
+
+    public function updatedCategoryId(): void
+    {
+        $this->categorySource = 'manual';
+    }
+
+    protected function allCategories()
+    {
+        return Category::orderBy('category_name')->get();
+    }
+
+
     //  DELETE
-  
+
 
     public function confirmDelete($id)
     {
@@ -152,9 +218,9 @@ class Index extends Component
         session()->flash('success', 'Expense deleted successfully.');
     }
 
-    
+
     //  UNSAVED MODALS
- 
+
 
     public function closeUnsavedModal()
     {
@@ -167,9 +233,9 @@ class Index extends Component
         $this->deleteExpenseId = null;
     }
 
-    
+
     //  RESET FORM
-   
+
 
     private function resetForm()
     {
@@ -178,6 +244,11 @@ class Index extends Component
             'description',
             'amount',
             'notes',
+
+            // AI: clear suggestion state so it doesn't leak into the next expense
+            'categorySource',
+            'aiSuggestedCategoryId',
+            'aiConfidence',
         ]);
 
         $this->expense_date = now()->toDateString();
@@ -188,9 +259,9 @@ class Index extends Component
         $this->showEditUnsavedModal = false;
     }
 
-   
+
     //  RENDER
-   
+
 
     public function render()
     {
@@ -200,7 +271,7 @@ class Index extends Component
                 ->latest()
                 ->get(),
 
-            'categories' => Category::orderBy('category_name')->get(),
+            'categories' => $this->allCategories(),
         ])->layout('layouts.app');
     }
 }
