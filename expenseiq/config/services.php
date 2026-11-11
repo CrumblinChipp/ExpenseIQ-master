@@ -40,6 +40,7 @@ return [
         'base_url'  => env('GEMINI_BASE_URL', 'https://generativelanguage.googleapis.com/v1beta'),
         'model_lite'  => env('GEMINI_MODEL_LITE', 'gemini-3.5-flash-lite'),
         'model_flash' => env('GEMINI_MODEL_FLASH', 'gemini-3.8-flash'),
+        'model_receipt' => env('GEMINI_MODEL_RECEIPT'),
         'timeout'   => 30,
     ],
 

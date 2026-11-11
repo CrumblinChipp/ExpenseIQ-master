@@ -16,10 +16,12 @@ use Throwable;
 class AiClient
 {
     public const LITE  = 'lite';   // Flash-Lite: categorization, simple parsing (higher free quota)
-    public const FLASH = 'flash';  // Flash: receipts, insights, Q&A (smarter, lower free quota)
+    public const FLASH = 'flash';  // Flash: insights, Q&A (smarter, lower free quota)
+    public const RECEIPT = 'receipt'; // Reading receipt photos.
 
     private string $apiKey;
     private string $baseUrl;
+    private int $imageKb = 0; // size of the images in the current call, for the logs
 
     public function __construct()
     {
@@ -37,6 +39,9 @@ class AiClient
      * @param float  $temperature  Low = consistent answers (good for categorization).
      * @param array  $images       Optional: [['mime_type' => 'image/jpeg', 'data' => '<base64>'], ...]
      * @param string $feature      Label for logs, e.g. 'categorize', 'receipt', 'insight'.
+     * @param ?string $thinkingLevel Gemini 3 models "think" before answering. Unset = deep thinking (slow).
+     *                              'minimal' or 'low' makes extraction/classification much faster.
+     * @param ?int   $timeout      Seconds to wait for Gemini (default: services.gemini.timeout).
      *
      * @throws AiException
      */
@@ -48,8 +53,11 @@ class AiClient
         float $temperature = 0.1,
         array $images = [],
         string $feature = 'unspecified',
+        ?string $thinkingLevel = null,
+        ?int $timeout = null,
     ): array {
         $model = $this->modelFor($tier);
+        $this->imageKb = (int) round(collect($images)->sum(fn ($image) => strlen($image['data'])) / 1024);
 
         if ($this->apiKey === '') {
             $this->fail('GEMINI_API_KEY is not set in .env.', 'config', $model, $feature);
@@ -73,18 +81,25 @@ class AiClient
             ],
         ];
 
+        if ($thinkingLevel !== null) {
+            $payload['generationConfig']['thinkingConfig'] = ['thinkingLevel' => $thinkingLevel];
+        }
+
         $started = microtime(true);
 
         try {
             $response = Http::withHeaders(['x-goog-api-key' => $this->apiKey])
                 ->acceptJson()
                 ->asJson()
-                ->timeout((int) config('services.gemini.timeout', 30))
+                ->connectTimeout(10)
+                ->timeout($timeout ?? (int) config('services.gemini.timeout', 30))
                 // Retry only on network errors and temporary server errors.
                 // 429 (quota) is NOT retried: on the free tier it usually means "come back later".
                 ->retry([500, 1500], 0, function ($exception) {
                     if ($exception instanceof ConnectionException) {
-                        return true;
+                        // Retry dropped connections, but never timeouts:
+                        // retrying a slow call only makes the user wait longer.
+                        return ! str_contains($exception->getMessage(), 'timed out');
                     }
 
                     return $exception instanceof RequestException
@@ -96,6 +111,21 @@ class AiClient
         }
 
         $json = $response->json() ?? [];
+
+        // Some models reject a thinking level. Retry once without it instead of failing.
+        if (
+            $response->status() === 400
+            && $thinkingLevel !== null
+            && str_contains(strtolower((string) data_get($json, 'error.message', '')), 'thinking')
+        ) {
+            Log::warning('ai.thinking_unsupported', [
+                'model' => $model,
+                'level' => $thinkingLevel,
+                'message' => data_get($json, 'error.message'),
+            ]);
+
+            return $this->structured($system, $user, $schema, $tier, $temperature, $images, $feature, null, $timeout);
+        }
 
         if ($response->status() === 429) {
             $this->fail(
@@ -142,6 +172,7 @@ class AiClient
             'feature'       => $feature,
             'model'         => $model,
             'latency_ms'    => (int) ((microtime(true) - $started) * 1000),
+            'image_kb'      => $this->imageKb,
             'input_tokens'  => data_get($json, 'usageMetadata.promptTokenCount'),
             'output_tokens' => data_get($json, 'usageMetadata.candidatesTokenCount'),
         ]);
@@ -153,13 +184,14 @@ class AiClient
     {
         return match ($tier) {
             self::FLASH => (string) config('services.gemini.model_flash'),
+            self::RECEIPT => (string) (config('services.gemini.model_receipt') ?: config('services.gemini.model_lite')),
             default     => (string) config('services.gemini.model_lite'),
         };
     }
 
     private function fail(string $message, string $reason, string $model, string $feature, ?Throwable $previous = null): never
     {
-        Log::warning('ai.failure', compact('feature', 'model', 'reason') + ['message' => $message]);
+        Log::warning('ai.failure', compact('feature', 'model', 'reason') + ['image_kb' => $this->imageKb, 'message' => $message]);
 
         throw new AiException($message, $reason, $previous);
     }

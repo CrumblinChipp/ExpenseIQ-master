@@ -7,6 +7,9 @@ import Chart from 'chart.js/auto';
 
 import './password-strength';
 
+import './receipt-scanner';
+import './category-combobox';
+
 window.Chart = Chart;
 
 console.log("APP JS LOADED");

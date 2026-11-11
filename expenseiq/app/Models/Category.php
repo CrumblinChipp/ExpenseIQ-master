@@ -18,4 +18,12 @@ class Category extends Model
     {
         return $this->hasMany(Expense::class);
     }
+
+    public function scopeVisibleTo($query, $userId)
+    {
+        return $query->where(
+            fn ($q) => $q->whereNull('user_id')->orWhere('user_id', $userId)
+        );
+    }
 }
+

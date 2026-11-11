@@ -19,6 +19,7 @@
     },
     "dependencies": {
         "chart.js": "^4.5.1",
-        "dotenv": "^18.0.9"
+        "dotenv": "^18.0.9",
+        "tesseract.js": "^7.0.0"
     }
 }

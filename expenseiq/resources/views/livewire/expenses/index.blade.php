@@ -23,21 +23,73 @@
     <div
         class="rounded-[30px] border-2 border-[#F2C94C] bg-white p-8 shadow-sm">
 
-        <div class="flex items-center justify-between">
+        {{-- Header + receipt scanner --}}
+        <div x-data="receiptScanner()">
 
-            <h2 class="text-3xl font-bold text-[#5D4300]">
-                Add New Expenses
-            </h2>
+            <div class="flex items-center justify-between">
+
+                <h2 class="text-3xl font-bold text-[#5D4300]">
+                    Add New Expenses
+                </h2>
+
+                <div>
+
+                    <input
+                        type="file"
+                        accept="image/*"
+                        class="hidden"
+                        x-ref="receiptFile"
+                        x-on:change="onFileChosen($event)">
+
+                    <button
+                        type="button"
+                        x-on:click="startFlow()"
+                        x-bind:disabled="busy"
+                        class="rounded-2xl border border-[#F2C94C] bg-[#FFF6DA] px-6 py-3 font-semibold text-[#6A4B00] transition hover:bg-[#FFEFC2] disabled:cursor-not-allowed disabled:opacity-60">
+
+                        <i class="fa-solid fa-receipt"></i>
+                        <span x-text="busy ? 'Scanning...' : 'Scan receipt'"></span>
+
+                    </button>
+
+                    <button
+                        type="button"
+                        x-on:click="showGuide()"
+                        class="mt-2 block w-full text-center text-sm text-[#8A6A00] underline hover:text-[#6A4B00]">
+                        Photo tips
+                    </button>
+
+                    <p class="mt-1 text-right text-xs text-[#8A6A00]">
+                        Read by Google Gemini AI
+                    </p>
+
+                </div>
+
+            </div>
+
+            {{-- Scanning animation (full-screen overlay) --}}
+            @include('livewire.expenses.partials.receipt-scan-overlay')
 
         </div>
 
+        {{-- Result of the last scan --}}
+        @if($scanMessage)
+
+            <div class="mt-6 rounded-2xl border border-[#F5C542] bg-[#FFF6DA] px-5 py-4 text-[#8A6A00]">
+                <i class="fa-solid fa-circle-info"></i>
+                {{ $scanMessage }}
+            </div>
+
+        @endif
+
         {{-- Unsaved Banner --}}
-        @if(
-            $description ||
-            $amount ||
-            $category_id ||
-            $notes
-        )
+        @php
+            $hasItemInput = collect($items)->contains(
+                fn ($item) => filled($item['description']) || filled($item['amount']) || filled($item['category_id'])
+            );
+        @endphp
+
+        @if($description || $notes || $hasItemInput)
 
             <div
                 class="mt-6 flex items-center justify-between rounded-2xl border border-[#F5C542] bg-[#FFF6DA] px-5 py-4">
@@ -83,82 +135,11 @@
 
                     <input
                         type="text"
-                        wire:model.blur="description"
-                        placeholder="Enter expense title..."
+                        wire:model.live="description"
+                        placeholder="e.g. Grocery run, SM Supermarket..."
                         class="w-full rounded-2xl border border-gray-300 px-5 py-3 outline-none transition focus:border-[#F2C94C]">
 
-                        <p wire:loading wire:target="description" class="mt-2 text-sm text-[#8A6A00]">
-                            Suggesting a category...
-                        </p>
                     @error('description')
-                        <p class="mt-2 text-sm text-red-500">
-                            {{ $message }}
-                        </p>
-                    @enderror
-
-                </div>
-
-                {{-- Category --}}
-                <div>
-
-                    <label
-                        class="mb-2 block font-semibold text-[#4D3900]">
-
-                        Category
-
-                    </label>
-
-                    <select
-                        wire:model.live="category_id"
-                        class="w-full rounded-2xl border border-gray-300 px-5 py-3 outline-none transition focus:border-[#F2C94C]">
-
-                        <option value="">
-                            Select Category
-                        </option>
-
-                        @foreach($categories as $category)
-
-                            <option value="{{ $category->id }}">
-                                {{ $category->category_name }}
-                            </option>
-
-                        @endforeach
-
-                    </select>
-
-                    @if($categorySource !== 'manual')
-                        <p class="mt-2 text-sm text-[#8A6A00]">
-                            <i class="fa-solid fa-wand-magic-sparkles"></i>
-                            {{ $categorySource === 'history' ? 'From your past expenses' : 'AI suggested' }}
-                        </p>
-                    @endif
-
-                    @error('category_id')
-                        <p class="mt-2 text-sm text-red-500">
-                            {{ $message }}
-                        </p>
-                    @enderror
-
-                </div>
-
-                {{-- Amount --}}
-                <div>
-
-                    <label
-                        class="mb-2 block font-semibold text-[#4D3900]">
-
-                        Amount
-
-                    </label>
-
-                    <input
-                        type="number"
-                        step="0.01"
-                        wire:model.live="amount"
-                        placeholder="0.00"
-                        class="w-full rounded-2xl border border-gray-300 px-5 py-3 outline-none transition focus:border-[#F2C94C]">
-
-                    @error('amount')
                         <p class="mt-2 text-sm text-red-500">
                             {{ $message }}
                         </p>
@@ -190,6 +171,9 @@
                 </div>
 
             </div>
+
+            {{-- Items (category + amount per item, total at the end) --}}
+            @include('livewire.expenses.partials.items-editor')
 
             {{-- Notes --}}
             <div>
@@ -267,7 +251,7 @@
         </th>
 
         <th class="text-right font-bold">
-            Amount
+            Total
         </th>
 
         <th class="text-center font-bold w-[140px]">
@@ -297,19 +281,27 @@
 
             </td>
 
-            {{-- Category --}}
+            {{-- Categories (one pill per distinct category among the items) --}}
             <td>
 
-                <span
-                    class="inline-flex items-center rounded-full bg-[#FFF2C7] px-4 py-2 text-sm font-semibold text-[#7A5A00]">
+                <div class="flex flex-wrap gap-2 py-2">
 
-                    {{ $expense->category->category_name }}
+                    @foreach($expense->items->pluck('category.category_name')->filter()->unique() as $categoryName)
 
-                </span>
+                        <span
+                            class="inline-flex items-center rounded-full bg-[#FFF2C7] px-4 py-2 text-sm font-semibold text-[#7A5A00]">
+
+                            {{ $categoryName }}
+
+                        </span>
+
+                    @endforeach
+
+                </div>
 
             </td>
 
-            {{-- Title --}}
+            {{-- Title + items --}}
             <td>
 
                 <div class="font-semibold text-[#4D3900]">
@@ -317,6 +309,23 @@
                     {{ $expense->description }}
 
                 </div>
+
+                @if($expense->items->count() > 1)
+
+                    <ul class="mt-1 space-y-0.5 text-sm text-gray-500">
+
+                        @foreach($expense->items as $item)
+
+                            <li>
+                                {{ $item->description }}
+                                · ₱{{ number_format($item->amount, 2) }}
+                            </li>
+
+                        @endforeach
+
+                    </ul>
+
+                @endif
 
                 @if($expense->notes)
 
@@ -330,7 +339,7 @@
 
             </td>
 
-            {{-- Amount --}}
+            {{-- Total --}}
             <td class="text-right">
 
                 <span class="font-bold text-[#5D4300]">
@@ -416,3 +425,5 @@
 @include('livewire.expenses.modals.unsaved-add')
 @include('livewire.expenses.modals.unsaved-edit')
 @include('livewire.expenses.modals.delete-expense')
+
+</div>

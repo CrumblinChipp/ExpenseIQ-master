@@ -3,7 +3,7 @@
 namespace App\Services\AI;
 
 use App\Models\Category;
-use App\Models\Expense;
+use App\Models\ExpenseItem;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -13,9 +13,10 @@ use Illuminate\Support\Str;
  * Suggests a category for an expense description.
  *
  * Order of attempts (cheapest first):
- *   1. The user's own history: same description before -> reuse their most-used category (free, instant).
+ *   1. The user's own history: same item name before -> reuse their most-used category (free, instant).
  *   2. Gemini Flash-Lite, with the answer cached so the same text never costs a second call.
  *
+ * Returns null when there is no good suggestion. The caller should then let the user pick manually.
  */
 class ExpenseCategorizer
 {
@@ -27,8 +28,9 @@ class ExpenseCategorizer
     }
 
     /**
-     * @param  Collection<int, Category>  $categories
+     * @param  Collection<int, Category>  $categories  The categories the user can choose from (needs id + category_name).
      * @return array{category_id: int, category: string, confidence: float, source: string}|null
+     *         source is 'history' or 'ai'
      */
     public function suggest(int $userId, string $description, Collection $categories): ?array
     {
@@ -44,12 +46,13 @@ class ExpenseCategorizer
 
     private function fromHistory(int $userId, string $key, Collection $categories): ?array
     {
-        $row = Expense::query()
-            ->where('user_id', $userId)
-            ->whereIn('category_id', $categories->pluck('id'))
-            ->whereRaw('LOWER(TRIM(description)) = ?', [$key])
-            ->select('category_id', DB::raw('COUNT(*) as uses'))
-            ->groupBy('category_id')
+        $row = ExpenseItem::query()
+            ->join('expenses', 'expenses.id', '=', 'expense_items.expense_id')
+            ->where('expenses.user_id', $userId)
+            ->whereIn('expense_items.category_id', $categories->pluck('id'))
+            ->whereRaw('LOWER(TRIM(expense_items.description)) = ?', [$key])
+            ->select('expense_items.category_id', DB::raw('COUNT(*) as uses'))
+            ->groupBy('expense_items.category_id')
             ->orderByDesc('uses')
             ->first();
 
@@ -92,7 +95,7 @@ class ExpenseCategorizer
                 )
             );
         } catch (AiException) {
-            return null; 
+            return null; // quota, network, bad output... the user just picks manually
         }
 
         $name       = is_string($answer['category'] ?? null) ? Str::lower($answer['category']) : '';
