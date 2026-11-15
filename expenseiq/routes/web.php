@@ -38,7 +38,6 @@ Route::middleware('auth')->group(function () {
         ->name('welcome.step3');
     Route::post('/welcome/finish', [OnboardingController::class, 'finish'])
         ->name('welcome.finish');
-
    
     //  Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])

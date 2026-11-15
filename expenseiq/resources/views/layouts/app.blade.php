@@ -90,7 +90,7 @@
                     Reports
 
                 </a>
-
+                
                 {{-- Settings --}}
                 <a href="{{ route('settings') }}"
                     class="flex items-center gap-3 p-3 rounded-xl transition
@@ -137,6 +137,9 @@
 
 </div>
 
+@auth
+    <livewire:chat />
+@endauth
 @livewireScripts
 @stack('scripts')
 

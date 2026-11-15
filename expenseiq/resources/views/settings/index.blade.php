@@ -34,6 +34,8 @@
 @include('settings.modals.budget')
 @include('settings.modals.clear-data')
 @include('settings.modals.delete-account')
-
+@auth
+    <livewire:chat />
+@endauth
 </body>
 </html>
