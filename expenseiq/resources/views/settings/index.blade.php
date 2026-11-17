@@ -31,7 +31,6 @@
 @include('settings.modals.nickname')
 @include('settings.modals.fullname')
 @include('settings.modals.email')
-@include('settings.modals.budget')
 @include('settings.modals.clear-data')
 @include('settings.modals.delete-account')
 @auth

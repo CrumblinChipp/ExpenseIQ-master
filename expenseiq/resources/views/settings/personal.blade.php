@@ -91,37 +91,6 @@
 
         </div>
 
-        <!-- Budget -->
-
-        <h2 class="text-[34px] font-bold text-[#5D4300] mt-16 mb-6">
-            Budget Preference
-        </h2>
-
-        <div class="bg-white border border-[#E6B400] rounded-[36px] overflow-hidden">
-
-            <div class="grid grid-cols-[220px_1fr_100px] items-center px-14 py-9">
-
-                <h2 class="text-[26px] font-bold text-[#5D4300]">
-                    Monthly Budget
-                </h2>
-
-                <p class="text-[26px]">
-                    ₱ {{ number_format($user->monthly_budget,2) }}
-                </p>
-
-                <button
-                    type="button"
-                    onclick="openModal('budgetModal')"
-                    class="text-pink-500 font-bold text-[24px] hover:underline text-right">
-
-                    Edit
-
-                </button>
-
-            </div>
-
-        </div>
-
     </div>
 
 </div>

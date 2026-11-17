@@ -38,7 +38,7 @@
     </h2>
 
     <p class="mt-5 text-[#B10F4A] text-xl">
-        Log in to see your latest expenses, budget status, and monthly reports.
+        Log in to see your latest expenses and monthly reports.
     </p>
 
     <!-- Card -->

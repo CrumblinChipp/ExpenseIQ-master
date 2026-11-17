@@ -69,17 +69,6 @@
 
                 </a>
 
-                <a href="{{ route('budget.index') }}"
-                    class="flex items-center gap-3 p-3 rounded-xl transition
-                    {{ request()->routeIs('budget.*') ? 'bg-yellow-300 font-semibold shadow-sm' : 'hover:bg-yellow-300' }}">
-
-                        <i class="fa-solid fa-sliders w-5"></i>
-
-                        Budget
-
-                    </a>
-
-                {{-- Budget button ilalagay natin kapag ready na ang routes --}}
                 {{-- Reports --}}
                 <a href="{{ route('reports.index') }}"
                     class="flex items-center gap-3 p-3 rounded-xl transition

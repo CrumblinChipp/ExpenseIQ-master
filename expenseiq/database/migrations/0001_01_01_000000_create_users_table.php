@@ -21,8 +21,6 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->string('password');
 
-            $table->decimal('monthly_budget', 12, 2)->nullable();
-
             $table->rememberToken();
             $table->timestamps();
         });

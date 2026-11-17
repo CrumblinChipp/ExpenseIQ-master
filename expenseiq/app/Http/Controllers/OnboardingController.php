@@ -31,25 +31,6 @@ class OnboardingController extends Controller
         return view('onboarding.step2');
     }
 
-    public function saveStep2(Request $request)
-    {
-        $request->validate([
-            'budget' => 'required|numeric|min:1',
-        ]);
-
-        $user = Auth::user();
-
-        $user->monthly_budget = $request->budget;
-        $user->save();
-
-        return redirect()->route('welcome.step3');
-    }
-
-    public function step3()
-    {
-        return view('onboarding.step3');
-    }
-
     public function finish()
     {
         $user = Auth::user();

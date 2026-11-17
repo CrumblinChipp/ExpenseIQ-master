@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\Budget;
 use App\Models\Category;
 use App\Models\Expense;
 use Carbon\Carbon;
@@ -35,17 +34,6 @@ class ReportService
         $expenses = $expenses->get();
 
         $totalExpenses = $expenses->sum('amount');
-        
-        // | Current Month Budget
-        $budget = Budget::where('user_id', $userId)
-            ->where('year', $year);
-
-        if ($month != 'all') {
-            $budget->where('month', $month);
-        }
-            $budget = $budget->get();
-
-        $totalBudget = $budget->sum('budget_amount');
 
         // | Yearly Monthly Totals
         $monthlyTotals = [];
@@ -164,9 +152,7 @@ class ReportService
             }
         }
         return [
-            'totalBudget' => $totalBudget,
             'totalExpenses' => $totalExpenses,
-            'remainingBudget' => max($totalBudget - $totalExpenses, 0),
             'categorySummary' => $categorySummary,
             'expenses' => $expenses,
 
@@ -222,11 +208,7 @@ class ReportService
 
                 'expenses' => $expenses,
 
-                'totalBudget' => 0,
-
                 'totalExpenses' => $totalExpenses,
-
-                'remainingBudget' => 0,
 
                 'categorySummary' => $categorySummary,
 

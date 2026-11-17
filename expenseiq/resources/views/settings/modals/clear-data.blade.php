@@ -22,7 +22,7 @@
 
         <p class="mt-5 text-center text-[28px] leading-relaxed text-[#B9A36A]">
 
-            All expenses, budgets, and reports will be
+            All expenses and reports will be
 
             <span class="font-bold">
                 permanently deleted.

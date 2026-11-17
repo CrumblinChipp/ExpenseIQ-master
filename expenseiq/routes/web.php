@@ -7,7 +7,6 @@ use App\Http\Controllers\LandingController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\SettingsController;
 
@@ -30,10 +29,6 @@ Route::middleware('auth')->group(function () {
         ->name('welcome.step1');
     Route::post('/welcome', [OnboardingController::class, 'saveStep1'])
         ->name('welcome.step1.save');
-    Route::get('/welcome/budget', [OnboardingController::class, 'step2'])
-        ->name('welcome.step2');
-    Route::post('/welcome/budget', [OnboardingController::class, 'saveStep2'])
-        ->name('welcome.step2.save');
     Route::get('/welcome/finish', [OnboardingController::class, 'step3'])
         ->name('welcome.step3');
     Route::post('/welcome/finish', [OnboardingController::class, 'finish'])
@@ -52,12 +47,6 @@ Route::middleware('auth')->group(function () {
         ->name('expenses.update');
     Route::delete('/expenses/{expense}', [ExpenseController::class, 'destroy'])
         ->name('expenses.destroy');
-
-    //  Budget
-    Route::get('/budget', [BudgetController::class, 'index'])
-        ->name('budget.index');
-    Route::post('/budget/save', [BudgetController::class, 'save'])
-        ->name('budget.save');
 
     //  Reports (Livewire)
     Route::get('/reports', ReportIndex::class)

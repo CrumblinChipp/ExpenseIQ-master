@@ -29,7 +29,7 @@
                     </h2>
 
                     <p class="text-[24px] text-[#5D4300] leading-relaxed mt-2">
-                        Permanently deletes all your expenses, budgets,
+                        Permanently deletes all your expenses
                         and reports. Your account will remain active.
                     </p>
 

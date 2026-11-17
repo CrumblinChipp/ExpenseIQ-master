@@ -16,7 +16,6 @@ class User extends Authenticatable
         'nickname',
         'email',
         'password',
-        'monthly_budget',
         'is_onboarded',
     ];
 
@@ -33,15 +32,5 @@ class User extends Authenticatable
     public function expenses()
     {
         return $this->hasMany(Expense::class);
-    }
-
-    public function budget()
-    {
-        return $this->hasMany(Budget::class);
-    }
-
-    public function reports()
-    {
-        return $this->hasMany(Report::class);
     }
 }

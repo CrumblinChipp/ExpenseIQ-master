@@ -64,7 +64,7 @@
             <p class="mt-8 text-[22px] leading-relaxed text-[#B3A477] max-w-[520px]">
 
                 ExpenseIQ helps you log daily expenses,
-                set monthly budgets, receive instant alerts,
+                receive instant alerts,
                 and generate spending reports—
                 all in one simple dashboard.
 
@@ -77,7 +77,7 @@
         <div>
 
             <h2 class="text-[46px] font-black text-center text-[#5B4300] mb-10">
-                Everything you need to stay on budget
+                Everything you need to stay on track
             </h2>
 
             @php
@@ -88,20 +88,6 @@
                         'bg'=>'bg-yellow-300',
                         'title'=>'Expense Entry',
                         'desc'=>'Quickly log transactions with category, amount and date.'
-                    ],
-
-                    [
-                        'icon'=>'fa-sliders',
-                        'bg'=>'bg-pink-200',
-                        'title'=>'Monthly Budget',
-                        'desc'=>'Set spending limits per category and monitor your budget.'
-                    ],
-
-                    [
-                        'icon'=>'fa-bell',
-                        'bg'=>'bg-yellow-300',
-                        'title'=>'Budget Alert',
-                        'desc'=>'Receive warnings before you exceed your budget.'
                     ],
 
                     [

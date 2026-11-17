@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Budget;
 use App\Models\Expense;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -82,18 +81,6 @@ class SettingsController extends Controller
                 ]);
 
                 break;
-
-            case 'budget':
-
-                $request->validate([
-                    'monthly_budget' => 'required|numeric|min:0',
-                ]);
-
-                $user->update([
-                    'monthly_budget' => $request->monthly_budget,
-                ]);
-
-                break;
         }
 
         return redirect()
@@ -135,15 +122,13 @@ class SettingsController extends Controller
     }
 
     /**
-     * Delete Expenses, Budgets and Reports
+     * Delete Expenses and Reports
      */
     public function clearData()
     {
         $userId = Auth::id();
 
         Expense::where('user_id', $userId)->delete();
-
-        Budget::where('user_id', $userId)->delete();
 
         return redirect()
             ->route('settings')
@@ -158,8 +143,6 @@ class SettingsController extends Controller
         $user = Auth::user();
 
         Expense::where('user_id', $user->id)->delete();
-
-        Budget::where('user_id', $user->id)->delete();
 
         Auth::logout();
 

@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Set Budget | ExpenseIQ</title>
+    <title>Welcome | ExpenseIQ</title>
 
     @vite(['resources/css/app.css','resources/js/app.js'])
 
     <link rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 </head>
 
 <body class="bg-[#FFF8E8] flex items-center justify-center min-h-screen">
@@ -21,9 +21,9 @@
 
         <div class="flex justify-center">
 
-            <div class="w-24 h-24 rounded-[28px] bg-pink-200 flex items-center justify-center">
+            <div class="w-24 h-24 rounded-full bg-[#B8F29C] border-2 border-green-600 flex items-center justify-center">
 
-                <i class="fa-solid fa-wallet text-[#A31444] text-5xl"></i>
+                <i class="fa-solid fa-check text-green-700 text-5xl"></i>
 
             </div>
 
@@ -33,15 +33,15 @@
 
         <p class="mt-8 text-center text-pink-600 font-bold text-2xl uppercase">
 
-            Step 2 of 3 — Monthly Budget
+            Step 3 of 3 — You're All Set!
 
         </p>
 
         <!-- TITLE -->
 
-        <h1 class="mt-5 text-center text-[56px] font-black text-[#5B4300] leading-tight">
+        <h1 class="mt-5 text-center text-[56px] font-black text-[#5B4300]">
 
-            Set your monthly budget
+            Welcome to ExpenseIQ!
 
         </h1>
 
@@ -49,69 +49,56 @@
 
         <p class="mt-5 text-center text-[24px] text-[#B3A477] leading-relaxed max-w-3xl mx-auto">
 
-            How much do you plan to spend this month? This becomes
-            your total budget limit. You can break it down by category
-            on the Budget page.
+            Your account is ready. Here's what you can do next to get started.
 
         </p>
 
-        @if ($errors->any())
+        <!-- CARDS -->
 
-            <div class="mt-10 rounded-xl bg-red-50 border border-red-300 p-4">
+        <div class="mt-12 space-y-4">
 
-                <p class="text-red-600">
+            <!-- CARD 1 -->
 
-                    {{ $errors->first() }}
+            <div class="flex items-center gap-6 bg-[#FFF2AF] border-2 border-yellow-400 rounded-3xl px-8 py-6">
 
-                </p>
+                <div class="w-14 h-14 rounded-full bg-[#8B6400] flex items-center justify-center flex-shrink-0">
+
+                    <i class="fa-solid fa-plus text-white text-2xl"></i>
+
+                </div>
+
+                <div>
+
+                    <h3 class="text-[30px] font-bold text-[#5B4300]">
+
+                        Log your first expense
+
+                    </h3>
+
+                    <p class="text-[22px] text-[#6E5B25]">
+
+                        Track every peso from day one.
+
+                    </p>
+
+                </div>
 
             </div>
 
-        @endif
+            </div>
+            
+        </div>
 
-        <form
-            action="{{ route('welcome.step2.save') }}"
-            method="POST"
-            class="mt-12">
+        <!-- BUTTON -->
+
+        <form action="{{ route('welcome.finish') }}" method="POST" class="mt-12">
 
             @csrf
-
-            <div>
-
-                <label class="block text-[#5B4300] font-bold text-2xl mb-4">
-
-                    TOTAL MONTHLY BUDGET (₱)
-
-                </label>
-
-                <input
-                    type="number"
-                    name="budget"
-                    value="{{ old('budget') }}"
-                    min="1"
-                    step="0.01"
-                    required
-
-                    class="w-full
-                    h-20
-                    rounded-2xl
-                    border
-                    border-gray-300
-                    px-6
-                    text-2xl
-                    outline-none
-                    focus:ring-2
-                    focus:ring-yellow-500">
-
-            </div>
-
-            <!-- CONTINUE -->
 
             <button
                 type="submit"
 
-                class="mt-10
-                w-full
+                class="w-full
                 h-20
                 rounded-2xl
                 border-2
@@ -123,39 +110,13 @@
                 hover:bg-yellow-100
                 transition">
 
-                Continue
+                Go to my Dashboard
+
                 <i class="fa-solid fa-arrow-right ml-2"></i>
 
             </button>
 
         </form>
-
-        <!-- BACK -->
-
-        <a
-            href="{{ route('welcome.step1') }}"
-
-            class="mt-5
-            w-full
-            h-20
-            rounded-2xl
-            border-2
-            border-black
-            bg-white
-            flex
-            items-center
-            justify-center
-            text-[#5B4300]
-            text-[34px]
-            font-black
-            hover:bg-gray-100
-            transition">
-
-            <i class="fa-solid fa-arrow-left mr-3"></i>
-
-            Back
-
-        </a>
 
     </div>
 

@@ -46,7 +46,7 @@
             <p class="mt-8 text-lg text-gray-600 leading-8 max-w-lg">
 
                 Create your ExpenseIQ account and start managing your expenses,
-                monthly budget, and financial reports with ease.
+                receive instant alerts, and generate financial reports with ease.
 
             </p>
 
@@ -60,13 +60,6 @@
 
                 </div>
 
-                <div class="flex items-center gap-4">
-
-                    <i class="fa-solid fa-circle-check text-yellow-600 text-xl"></i>
-
-                    <span>Set budget per category</span>
-
-                </div>
 
                 <div class="flex items-center gap-4">
 
