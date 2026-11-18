@@ -63,8 +63,7 @@
 
             <p class="mt-8 text-[22px] leading-relaxed text-[#B3A477] max-w-[520px]">
 
-                ExpenseIQ helps you log daily expenses,
-                receive instant alerts,
+                ExpenseIQ helps you log daily expenses
                 and generate spending reports—
                 all in one simple dashboard.
 
@@ -114,7 +113,7 @@
                 ];
             @endphp
 
-            <div class="grid grid-cols-3 gap-5">
+            <div class="grid grid-cols-2 gap-5">
 
                 @foreach($features as $feature)
 

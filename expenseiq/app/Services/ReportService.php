@@ -3,216 +3,180 @@
 namespace App\Services;
 
 use App\Models\Category;
-use App\Models\Expense;
+use App\Models\ExpenseItem;
 use Carbon\Carbon;
 
 class ReportService
 {
-    public function getMonthlyReport(
-        int $userId, 
-        string $month, 
-        int $year,
-        $category = 'all'
-    ): array
+    /** Items of one user, joined to their purchase, optionally limited to one category. */
+    private function itemsQuery(int $userId, $category = 'all')
     {
-        // | Current Month Expenses
-
-        $expenses = Expense::with('category')
-            ->where('user_id', $userId)
-            ->whereYear('expense_date', $year);
-
-        if ($month != 'all') {
-            $expenses->whereMonth('expense_date', $month);
-        } else {
-            $expenses->whereMonth('expense_date', now()->month);
-        }
-
-        if ($category != 'all') {
-            $expenses->where('category_id', $category);
-        }
-
-        $expenses = $expenses->get();
-
-        $totalExpenses = $expenses->sum('amount');
-
-        // | Yearly Monthly Totals
-        $monthlyTotals = [];
-
-        for ($m = 1; $m <= 12; $m++) {
-
-        $query = Expense::where('user_id', $userId)
-            ->whereYear('expense_date', $year)
-            ->whereMonth('expense_date', $m);
-
-        if ($category != 'all') {
-            $query->where('category_id', $category);
-        }
-
-        $monthlyTotals[$m] = $query->sum('amount');
+        return ExpenseItem::query()
+            ->join('expenses', 'expenses.id', '=', 'expense_items.expense_id')
+            ->where('expenses.user_id', $userId)
+            ->when(
+                filled($category) && $category !== 'all',
+                fn ($q) => $q->where('expense_items.category_id', $category)
+            );
     }
 
-        // | Summary Cards
+    public function getMonthlyReport(
+        int $userId,
+        string $month,
+        int $year,
+        $category = 'all'
+    ): array {
+        $selectedMonth = $month === 'all' ? now()->month : (int) $month;
 
-        $averageMonthly = collect($monthlyTotals)->average();
+        // One query: every item of the year.
+        $rows = $this->itemsQuery($userId, $category)
+            ->whereYear('expenses.expense_date', $year)
+            ->get([
+                'expenses.expense_date as expense_date',
+                'expense_items.category_id as category_id',
+                'expense_items.amount as amount',
+            ])
+            ->map(fn ($row) => [
+                'date'        => Carbon::parse($row->expense_date),
+                'category_id' => $row->category_id,
+                'amount'      => (float) $row->amount,
+            ]);
+
+        // Yearly monthly totals
+        $monthlyTotals = array_fill(1, 12, 0.0);
+
+        foreach ($rows as $row) {
+            $monthlyTotals[$row['date']->month] += $row['amount'];
+        }
+
+        $monthlyTotals = array_map(fn ($v) => round($v, 2), $monthlyTotals);
+
+        // Rows of the selected month (current month when "all")
+        $monthRows     = $rows->filter(fn ($r) => $r['date']->month === $selectedMonth);
+        $totalExpenses = round($monthRows->sum('amount'), 2);
+
+        // Summary cards
+        $averageMonthly     = collect($monthlyTotals)->average();
         $highestMonthAmount = max($monthlyTotals);
-
-        $highestMonthNumber = array_search(
-            $highestMonthAmount,
-            $monthlyTotals
-        );
+        $highestMonthNumber = array_search($highestMonthAmount, $monthlyTotals);
 
         $bestMonth = $highestMonthAmount > 0
-            ? Carbon::create()->month($highestMonthNumber)->format('F')
+            ? Carbon::create($year, $highestMonthNumber, 1)->format('F')
             : '-';
 
         $yearTotal = array_sum($monthlyTotals);
 
-        // | Chart Data
+        // Chart data
         $chartLabels = [];
-        $chartData = [];
+        $chartData   = [];
 
-        if ($month == 'all') {
-
+        if ($month === 'all') {
             foreach ($monthlyTotals as $monthNumber => $amount) {
-
-                $chartLabels[] = Carbon::create()
-                    ->month($monthNumber)
-                    ->format('M');
-
-                $chartData[] = $amount;
+                $chartLabels[] = Carbon::create($year, $monthNumber, 1)->format('M');
+                $chartData[]   = $amount;
             }
-
         } else {
+            $daysInMonth = Carbon::create($year, $selectedMonth, 1)->daysInMonth;
 
-            $daysInMonth = Carbon::create($year, (int)$month)->daysInMonth;
+            $perDay = $monthRows
+                ->groupBy(fn ($r) => $r['date']->day)
+                ->map(fn ($group) => $group->sum('amount'));
 
             for ($day = 1; $day <= $daysInMonth; $day++) {
-
-                $query = Expense::where('user_id', $userId)
-                    ->whereYear('expense_date', $year)
-                    ->whereMonth('expense_date', $month)
-                    ->whereDay('expense_date', $day);
-
-                if ($category != 'all') {
-                    $query->where('category_id', $category);
-                }
-
                 $chartLabels[] = $day;
-                $chartData[] = $query->sum('amount');
+                $chartData[]   = round($perDay[$day] ?? 0, 2);
             }
         }
 
-        // | Top Categories
+        // Top categories
+        $names = Category::pluck('category_name', 'id');
 
-        $categorySummary = $expenses
-            ->groupBy(fn ($expense) => $expense->category->category_name)
-            ->map(fn ($items) => $items->sum('amount'))
+        $categorySummary = $monthRows
+            ->groupBy('category_id')
+            ->mapWithKeys(fn ($group, $id) => [
+                ($names[$id] ?? 'Uncategorized') => round($group->sum('amount'), 2),
+            ])
             ->sortDesc();
 
         $highestCategory = $categorySummary->max();
-        $topCategories = [];
+        $topCategories   = [];
 
         foreach ($categorySummary as $name => $amount) {
-
             $topCategories[] = [
-
-                'name' => $name,
-                'amount' => $amount,
+                'name'       => $name,
+                'amount'     => $amount,
                 'percentage' => $highestCategory > 0
                     ? round(($amount / $highestCategory) * 100)
                     : 0,
             ];
         }
 
-        //  Month Comparison
+        // Month comparison
         $monthComparison = [];
 
-        if ($month != 'all') {
-
-            for ($i = $month - 1; $i >= max(1, $month - 3); $i--) {
-
+        if ($month !== 'all') {
+            for ($i = $selectedMonth - 1; $i >= max(1, $selectedMonth - 3); $i--) {
                 $previous = $monthlyTotals[$i];
-                $current = $monthlyTotals[$month];
-
-                $change = $previous > 0
-                    ? round((($current - $previous) / $previous) * 100, 1)
-                    : 0;
+                $current  = $monthlyTotals[$selectedMonth];
 
                 $monthComparison[] = [
-
-                    'month' => Carbon::create()
-                        ->month($i)
-                        ->format('F'),
-
+                    'month'  => Carbon::create($year, $i, 1)->format('F'),
                     'amount' => $previous,
-
-                    'change' => $change,
-
+                    'change' => $previous > 0
+                        ? round((($current - $previous) / $previous) * 100, 1)
+                        : 0,
                 ];
             }
         }
-        return [
-            'totalExpenses' => $totalExpenses,
-            'categorySummary' => $categorySummary,
-            'expenses' => $expenses,
 
-            // Summary Cards
-            'averageMonthly' => $averageMonthly,
-            'bestMonth' => $bestMonth,
+        return [
+            'totalExpenses'   => $totalExpenses,
+            'categorySummary' => $categorySummary,
+
+            // Summary cards
+            'averageMonthly'     => $averageMonthly,
+            'bestMonth'          => $bestMonth,
             'highestMonthAmount' => $highestMonthAmount,
-            'yearTotal' => $yearTotal,
+            'yearTotal'          => $yearTotal,
 
             // Chart
             'chartLabels' => $chartLabels,
-            'chartData' => $chartData,
+            'chartData'   => $chartData,
 
-            // Categories
-            'topCategories' => $topCategories,
-
-            // Month Comparison
+            // Lists
+            'topCategories'   => $topCategories,
             'monthComparison' => $monthComparison,
-
         ];
+    }
 
-        } // <-- Dito nagtatapos ang getMonthlyReport()
+    /**
+     * Used by the CSV / PDF export.
+     * 'expenses' is now a list of ITEMS (one row per item), each with its category and purchase loaded.
+     */
+    public function getReportByDateRange(
+        int $userId,
+        string $from,
+        string $to,
+        $category = 'all'
+    ): array {
+        $items = $this->itemsQuery($userId, $category)
+            ->whereBetween('expenses.expense_date', [$from, $to])
+            ->with(['category', 'expense'])
+            ->select('expense_items.*')
+            ->orderBy('expenses.expense_date')
+            ->orderBy('expense_items.id')
+            ->get();
 
+        $categorySummary = $items
+            ->groupBy(fn ($item) => $item->category?->category_name ?? 'Uncategorized')
+            ->map(fn ($group) => $group->sum('amount'))
+            ->sortDesc();
 
-
-        public function getReportByDateRange(
-            int $userId,
-            string $from,
-            string $to,
-            $category = 'all'
-        ): array {
-
-            $query = Expense::with('category')
-                ->where('user_id', $userId)
-                ->whereBetween('expense_date', [$from, $to]);
-
-            if ($category != 'all') {
-                $query->where('category_id', $category);
-            }
-
-            $expenses = $query
-                ->orderBy('expense_date')
-                ->get();
-
-            $totalExpenses = $expenses->sum('amount');
-
-            $categorySummary = $expenses
-                ->groupBy(fn ($expense) => $expense->category->category_name)
-                ->map(fn ($items) => $items->sum('amount'))
-                ->sortDesc();
-
-            return [
-
-                'expenses' => $expenses,
-
-                'totalExpenses' => $totalExpenses,
-
-                'categorySummary' => $categorySummary,
-
-            ];
-        }
-
-        } // <-- Dito nagtatapos ang ReportService
+        return [
+            'expenses'        => $items,
+            'transactions'    => $items->pluck('expense_id')->unique()->count(),
+            'totalExpenses'   => $items->sum('amount'),
+            'categorySummary' => $categorySummary,
+        ];
+    }
+}

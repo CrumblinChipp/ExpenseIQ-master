@@ -93,7 +93,7 @@
                     <p class="font-semibold text-[#6A4B00]">What would you like to know?</p>
 
                     <p class="mt-1 text-xs text-gray-500">
-                        I can see your expenses, categories and budgets for this month.
+                        I can see your expenses and categories for this month.
                     </p>
 
                     <div class="mt-5 flex flex-wrap justify-center gap-2">
@@ -102,7 +102,6 @@
                             'What is my average expense this month?',
                             'Which category do I spend the most on?',
                             'How does this month compare to last month?',
-                            'Which categories are close to their budget?',
                         ] as $suggestion)
 
                             <button

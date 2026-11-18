@@ -33,7 +33,7 @@
 
         <p class="mt-8 text-center text-pink-600 font-bold text-2xl uppercase">
 
-            Step 3 of 3 — You're All Set!
+            Step 2 of 2 — You're All Set!
 
         </p>
 
@@ -86,7 +86,7 @@
             </div>
 
             </div>
-            
+
         </div>
 
         <!-- BUTTON -->

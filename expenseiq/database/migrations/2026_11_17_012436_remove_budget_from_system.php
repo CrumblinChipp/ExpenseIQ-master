@@ -20,8 +20,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('system', function (Blueprint $table) {
-            //
-        });
+        // Budget feature was removed on purpose; nothing to restore.
     }
 };

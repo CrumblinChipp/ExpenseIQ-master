@@ -45,8 +45,8 @@
 
             <p class="mt-8 text-lg text-gray-600 leading-8 max-w-lg">
 
-                Create your ExpenseIQ account and start managing your expenses,
-                receive instant alerts, and generate financial reports with ease.
+                Create your ExpenseIQ account and start managing your expenses
+                and generate financial reports with ease.
 
             </p>
 

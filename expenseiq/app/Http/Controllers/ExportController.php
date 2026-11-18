@@ -3,60 +3,54 @@
 namespace App\Http\Controllers;
 
 use App\Services\ReportService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\StreamedResponse;
-use Barryvdh\DomPDF\Facade\Pdf;
 
 class ExportController extends Controller
 {
-    public function csv(
-        Request $request,
-        ReportService $reportService
-    ): StreamedResponse {
+    private function reportFor(Request $request, ReportService $reportService): array
+    {
+        $data = $request->validate([
+            'from'     => 'required|date',
+            'to'       => 'required|date|after_or_equal:from',
+            'category' => 'nullable',
+        ]);
 
-        $from = $request->from;
-        $to = $request->to;
-        $category = $request->category ?? 'all';
+        return [
+            $reportService->getReportByDateRange(
+                Auth::id(),
+                $data['from'],
+                $data['to'],
+                $data['category'] ?? 'all'
+            ),
+            $data['from'],
+            $data['to'],
+        ];
+    }
 
-        $report = $reportService->getReportByDateRange(
-            Auth::id(),
-            $from,
-            $to,
-            $category
-        );
+    public function csv(Request $request, ReportService $reportService): StreamedResponse
+    {
+        [$report] = $this->reportFor($request, $reportService);
 
         $headers = [
-
-            'Content-Type' => 'text/csv',
-
-            'Content-Disposition' =>
-                'attachment; filename="expense-report.csv"',
-
+            'Content-Type'        => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="expense-report.csv"',
         ];
 
         $callback = function () use ($report) {
-
             $file = fopen('php://output', 'w');
 
-            fputcsv($file, [
+            fputcsv($file, ['Date', 'Purchase', 'Item', 'Category', 'Amount']);
 
-                'Category',
-                'Description',
-                'Amount',
-                'Date',
-
-            ]);
-
-            foreach ($report['expenses'] as $expense) {
-
+            foreach ($report['expenses'] as $item) {
                 fputcsv($file, [
-
-                    $expense->category->category_name,
-                    $expense->description,
-                    $expense->amount,
-                    $expense->expense_date,
-
+                    $item->expense?->expense_date?->format('Y-m-d'),
+                    $item->expense?->description,
+                    $item->description,
+                    $item->category?->category_name,
+                    $item->amount,
                 ]);
             }
 
@@ -66,32 +60,14 @@ class ExportController extends Controller
         return response()->stream($callback, 200, $headers);
     }
 
-    public function pdf(
-        Request $request,
-        ReportService $reportService
-    )
+    public function pdf(Request $request, ReportService $reportService)
     {
-        $from = $request->from;
-        $to = $request->to;
-        $category = $request->category ?? 'all';
+        [$report, $from, $to] = $this->reportFor($request, $reportService);
 
-        $report = $reportService->getReportByDateRange(
-            Auth::id(),
-            $from,
-            $to,
-            $category
-        );
-
-        $pdf = Pdf::loadView('reports.pdf', [
-
+        return Pdf::loadView('reports.pdf', [
             'report' => $report,
-
-            'from' => $from,
-
-            'to' => $to,
-
-        ]);
-
-        return $pdf->download('expense-report.pdf');
+            'from'   => $from,
+            'to'     => $to,
+        ])->download('expense-report.pdf');
     }
 }

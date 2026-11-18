@@ -178,15 +178,13 @@
     </tr>
 
     <tr>
+        <td class="label">Total Transactions</td>
+        <td class="value">{{ $report['transactions'] }}</td>
+    </tr>
 
-        <td class="label">
-            Total Transactions
-        </td>
-
-        <td class="value">
-            {{ count($report['expenses']) }}
-        </td>
-
+    <tr>
+        <td class="label">Total Items</td>
+        <td class="value">{{ count($report['expenses']) }}</td>
     </tr>
 
 </table>
@@ -200,67 +198,29 @@ Expense Details
 <table>
 
     <thead>
-
         <tr>
-
-            <th width="22%">Category</th>
-
-            <th width="38%">Description</th>
-
-            <th width="18%">Amount</th>
-
-            <th width="22%">Date</th>
-
+            <th width="18%">Category</th>
+            <th width="28%">Item</th>
+            <th width="26%">Purchase</th>
+            <th width="14%">Amount</th>
+            <th width="14%">Date</th>
         </tr>
-
     </thead>
 
     <tbody>
-
-    @forelse($report['expenses'] as $expense)
-
+    @forelse($report['expenses'] as $item)
         <tr>
-
-            <td>
-
-                {{ $expense->category->category_name }}
-
-            </td>
-
-            <td>
-
-                {{ $expense->description }}
-
-            </td>
-
-            <td class="amount">
-
-                ₱{{ number_format($expense->amount,2) }}
-
-            </td>
-
-            <td>
-
-                {{ \Carbon\Carbon::parse($expense->expense_date)->format('M d, Y') }}
-
-            </td>
-
+            <td>{{ $item->category?->category_name }}</td>
+            <td>{{ $item->description }}</td>
+            <td>{{ $item->expense?->description }}</td>
+            <td class="amount">₱{{ number_format($item->amount, 2) }}</td>
+            <td>{{ $item->expense?->expense_date?->format('M d, Y') }}</td>
         </tr>
-
     @empty
-
         <tr>
-
-            <td colspan="4" style="text-align:center;">
-
-                No expense records found.
-
-            </td>
-
+            <td colspan="5" style="text-align:center;">No expense records found.</td>
         </tr>
-
     @endforelse
-
     </tbody>
 
 </table>

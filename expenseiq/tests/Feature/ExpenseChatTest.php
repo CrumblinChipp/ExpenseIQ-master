@@ -37,7 +37,6 @@ class ExpenseChatTest extends TestCase
             'last_name'      => 'rafols',
             'email'          => $email,
             'password'       => bcrypt('Nicoletest123_'),
-            'monthly_budget' => 10000,
             'is_onboarded'   => true,
         ]);
     }
@@ -99,8 +98,6 @@ class ExpenseChatTest extends TestCase
         $this->assertEquals(200.0, $month['average_expense']);        // 400 / 2 purchases
         $this->assertEquals(133.33, $month['average_item_amount']);   // 400 / 3 items
         $this->assertSame('Grocery', $month['highest_category']);
-        $this->assertEquals(10000.0, $month['monthly_budget']);
-
         $this->assertCount(6, $month['by_category']); // all seeded categories, even with 0 spent
         $this->assertSame('Grocery', $month['by_category'][0]['category']);
         $this->assertEquals(250.0, $month['by_category'][0]['spent']);

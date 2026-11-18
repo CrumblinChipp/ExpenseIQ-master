@@ -97,7 +97,7 @@ class Index extends Component
     {
         return view('livewire.reports.index', [
             'report' => $this->report,
-            'categories' => Category::orderBy('category_name')->get(),
+            'categories' => Category::visibleTo(Auth::id())->orderBy('category_name')->get(),
         ])->layout('layouts.app');
     }
 }

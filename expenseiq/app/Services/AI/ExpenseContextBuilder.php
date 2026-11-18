@@ -2,11 +2,9 @@
 
 namespace App\Services\AI;
 
-use App\Models\Budget;
 use App\Models\Category;
 use App\Models\Expense;
 use App\Models\ExpenseItem;
-use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
 
@@ -48,28 +46,17 @@ class ExpenseContextBuilder
             ->get()
             ->keyBy('category');
 
-        $budgets = Budget::query()
-            ->where('user_id', $userId)
-            ->where('month', $now->month)
-            ->where('year', $now->year)
-            ->with('category')
-            ->get()
-            ->mapWithKeys(fn ($b) => [$b->category->category_name => (float) $b->budget_amount]);
 
         // Every category is listed (even with 0 spent) so the model sees the full picture.
-        $categories = Category::orderBy('category_name')->get()
-            ->map(function ($category) use ($perCategory, $budgets) {
-                $row    = $perCategory->get($category->category_name);
-                $spent  = round((float) ($row->total ?? 0), 2);
-                $budget = $budgets[$category->category_name] ?? null;
+        $categories = Category::visibleTo($userId)->orderBy('category_name')->get()
+            ->map(function ($category) use ($perCategory) {
+                $row = $perCategory->get($category->category_name);
 
                 return [
-                    'category'            => $category->category_name,
-                    'spent'               => $spent,
-                    'items'               => (int) ($row->items ?? 0),
-                    'transactions'        => (int) ($row->transactions ?? 0),
-                    'budget'              => $budget,
-                    'budget_used_percent' => $budget ? round($spent / $budget * 100, 1) : null,
+                    'category'     => $category->category_name,
+                    'spent'        => round((float) ($row->total ?? 0), 2),
+                    'items'        => (int) ($row->items ?? 0),
+                    'transactions' => (int) ($row->transactions ?? 0),
                 ];
             })
             ->sortByDesc('spent')
@@ -91,7 +78,6 @@ class ExpenseContextBuilder
                 'items'               => $itemCount,      // individual lines inside them
                 'average_expense'     => $transactions ? round($totalSpent / $transactions, 2) : 0, // per transaction
                 'average_item_amount' => $itemCount ? round($totalSpent / $itemCount, 2) : 0,       // per item
-                'monthly_budget'      => (float) (User::find($userId)?->monthly_budget ?? 0),
                 'highest_category'    => ($highest && $highest['spent'] > 0) ? $highest['category'] : null,
                 'by_category'         => $categories->all(),
                 'largest_purchases'   => $this->largestPurchases($monthItems),

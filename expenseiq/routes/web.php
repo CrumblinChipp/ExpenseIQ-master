@@ -29,8 +29,8 @@ Route::middleware('auth')->group(function () {
         ->name('welcome.step1');
     Route::post('/welcome', [OnboardingController::class, 'saveStep1'])
         ->name('welcome.step1.save');
-    Route::get('/welcome/finish', [OnboardingController::class, 'step3'])
-        ->name('welcome.step3');
+    Route::get('/welcome/finish', [OnboardingController::class, 'step2'])
+        ->name('welcome.step2');
     Route::post('/welcome/finish', [OnboardingController::class, 'finish'])
         ->name('welcome.finish');
    

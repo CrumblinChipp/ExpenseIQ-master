@@ -29,7 +29,7 @@
 
             <p class="mt-8 text-center text-pink-600 font-bold text-2xl uppercase">
 
-                Step 1 of 3 — Welcome
+                Step 1 of 2 — Welcome
 
             </p>
 
@@ -122,7 +122,7 @@
 
             <p class="mt-10 text-center text-pink-600 text-2xl">
 
-                Account created • Step 1 of 3
+                Account created • Step 1 of 2
 
             </p>
 
